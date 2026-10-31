@@ -2,113 +2,120 @@
 #include <stdio.h>
 #include "frame_parser.h"
 
-// Convert numeric frame type into a readable name
-const char *get_frame_type_name(uint8_t type)
+// Print a MAC address in standard hexadecimal format
+void print_mac_address(const char *label, const uint8_t mac[6])
 {
-    switch (type)
-    {
-        case 0:
-            return "Management";
-        case 1:
-            return "Control";
-        case 2:
-            return "Data";
-        default:
-            return "Reserved";
-    }
-}
+    printf("%s: ", label);
 
-// Convert Management subtype into a readable name
-const char *get_management_subtype_name(uint8_t subtype)
-{
-    switch (subtype)
+    for (int i = 0; i < 6; i++)
     {
-        case 0:
-            return "Association Request";
-        case 1:
-            return "Association Response";
-        case 4:
-            return "Probe Request";
-        case 5:
-            return "Probe Response";
-        case 8:
-            return "Beacon";
-        case 11:
-            return "Authentication";
-        default:
-            return "Other Management Frame";
+        printf("%02X", mac[i]);
+
+        if (i < 5)
+        {
+            printf(":");
+        }
     }
+
+    printf("\n");
 }
 
 int main(void)
 {
-    const uint8_t beacon_frame[] = {0x80, 0x00};
-    frame_control_t result;
+    // Sample 24-byte Beacon management header
+    const uint8_t beacon_frame[24] = {
+        0x80, 0x00,             // Frame Control
+        0x00, 0x00,             // Duration
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // Receiver
+        0xAA, 0xBB, 0xCC, 0x11, 0x22, 0x33, // Transmitter
+        0xAA, 0xBB, 0xCC, 0x11, 0x22, 0x33, // BSSID
+        0x10, 0x00              // Sequence Control
+    };
 
-    int status = parse_frame_control(
+    management_header_t header;
+
+    // Parse the complete management header
+    int status = parse_management_header(
         beacon_frame,
         sizeof(beacon_frame),
-        &result
+        &header
     );
 
     if (status != 0)
     {
-        printf("Frame parsing failed.\n");
+        printf("Management header parsing failed.\n");
         return 1;
     }
 
-    printf("Protocol Version: %u\n", result.protocol_version);
-    printf("Frame Type: %s\n", get_frame_type_name(result.type));
+    printf("Frame Type: %u\n", header.control.type);
+    printf("Frame Subtype: %u\n", header.control.subtype);
 
-    if (result.type == 0)
-    {
-        printf("Frame Subtype: %s\n",
-               get_management_subtype_name(result.subtype));
-    }
-        // Test an incomplete frame containing only one byte
-    const uint8_t truncated_frame[] = {0x80};
+    print_mac_address("Receiver", header.receiver);
+    print_mac_address("Transmitter", header.transmitter);
+    print_mac_address("BSSID", header.bssid);
 
-    status = parse_frame_control(
-        truncated_frame,
-        sizeof(truncated_frame),
-        &result
-    );
+    printf("Management header parsing successful.\n");
 
-    if (status == -1)
-    {
-        printf("Truncated frame rejected successfully.\n");
-    }
-    else
-    {
-        printf("ERROR: Truncated frame was accepted!\n");
-        return 1;
-    }
+    // Test rejection of a Control frame (Type = 1)
+const uint8_t control_frame[24] = {
+    0x04, 0x00
+};
 
-        // Test a NULL frame pointer
-    status = parse_frame_control(NULL, 2, &result);
+status = parse_management_header(
+    control_frame,
+    sizeof(control_frame),
+    &header
+);
 
-    if (status == -1)
-    {
-        printf("NULL frame pointer rejected successfully.\n");
-    }
-    else
-    {
-        printf("ERROR: NULL frame pointer accepted!\n");
-        return 1;
-    }
+if (status == -1)
+{
+    printf("Control frame rejected successfully.\n");
+}
+else
+{
+    printf("ERROR: Control frame was accepted!\n");
+    return 1;
+}
 
-    // Test a NULL result pointer
-    status = parse_frame_control(beacon_frame, sizeof(beacon_frame), NULL);
+// Test rejection of a Data frame (Type = 2)
+const uint8_t data_frame[24] = {
+    0x08, 0x00
+};
 
-    if (status == -1)
-    {
-        printf("NULL result pointer rejected successfully.\n");
-    }
-    else
-    {
-        printf("ERROR: NULL result pointer accepted!\n");
-        return 1;
-    }
+status = parse_management_header(
+    data_frame,
+    sizeof(data_frame),
+    &header
+);
+
+if (status == -1)
+{
+    printf("Data frame rejected successfully.\n");
+}
+else
+{
+    printf("ERROR: Data frame was accepted!\n");
+    return 1;
+}
+
+
+    // Test a management header that is only 23 bytes long
+const uint8_t short_frame[23] = {0};
+
+status = parse_management_header(
+    short_frame,
+    sizeof(short_frame),
+    &header
+);
+
+if (status == -1)
+{
+    printf("Incomplete management header rejected successfully.\n");
+}
+else
+{
+    printf("ERROR: Incomplete header was accepted!\n");
+    return 1;
+}
     return 0;
-    
 }

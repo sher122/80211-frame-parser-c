@@ -24,3 +24,56 @@ int parse_frame_control(
 
     return 0;
 }
+int parse_management_header(
+    const uint8_t *frame,
+    uint32_t frame_length,
+    management_header_t *result
+)
+{
+    // Reject NULL pointers and incomplete management headers
+    if (frame == NULL || result == NULL || frame_length < 24)
+    {
+        return -1;
+    }
+
+    // Decode the Frame Control field
+    if (parse_frame_control(frame, frame_length, &result->control) != 0)
+    {
+        return -1;
+    }
+    // Accept only Management frames (Type = 0)
+    if (result->control.type != 0)
+    {
+        return -1;
+    }
+
+    // Read the Duration field (bytes 2 and 3)
+    result->duration =
+        (uint16_t)frame[2] |
+        ((uint16_t)frame[3] << 8);
+
+    // Copy Address 1: Receiver (bytes 4-9)
+    for (int i = 0; i < 6; i++)
+    {
+        result->receiver[i] = frame[4 + i];
+    }
+
+    // Copy Address 2: Transmitter (bytes 10-15)
+    for (int i = 0; i < 6; i++)
+    {
+        result->transmitter[i] = frame[10 + i];
+    }
+
+    // Copy Address 3: BSSID (bytes 16-21)
+    for (int i = 0; i < 6; i++)
+    {
+        result->bssid[i] = frame[16 + i];
+    }
+
+    // Read Sequence Control (bytes 22 and 23)
+    result->sequence_control =
+        (uint16_t)frame[22] |
+        ((uint16_t)frame[23] << 8);
+
+    return 0;
+}
