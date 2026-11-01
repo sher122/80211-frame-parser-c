@@ -295,3 +295,107 @@ int parse_beacon_information_elements(
 
     return 0;
 }
+// Reads a 2-byte little-endian value.
+static uint16_t read_le16(const uint8_t *data)
+{
+    return (uint16_t)data[0] |
+           ((uint16_t)data[1] << 8);
+}
+
+// Reads an 8-byte little-endian value.
+static uint64_t read_le64(const uint8_t *data)
+{
+    uint64_t value = 0;
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        value |= (uint64_t)data[i] << (8U * i);
+    }
+
+    return value;
+}
+
+// Parses Beacon fixed parameters beginning at offset 24.
+int parse_beacon_fixed_parameters(
+    const uint8_t *frame,
+    uint32_t frame_length,
+    beacon_fixed_parameters_t *result
+)
+{
+    // A Beacon needs a 24-byte header and 12 fixed bytes.
+    if (frame == NULL || result == NULL || frame_length < 36)
+    {
+        return -1;
+    }
+
+    // Verify that this is a Management Beacon frame.
+    frame_control_t control;
+
+    if (parse_frame_control(frame, frame_length, &control) != 0 ||
+        control.type != 0 || control.subtype != 8)
+    {
+        return -1;
+    }
+
+    // Fixed parameters begin immediately after the 24-byte header.
+    const uint8_t *fixed = &frame[24];
+
+    result->timestamp = read_le64(fixed);
+    result->beacon_interval = read_le16(&fixed[8]);
+    result->capability_information = read_le16(&fixed[10]);
+
+    return 0;
+}
+
+// Parses a complete 802.11 Beacon frame.
+int parse_beacon_frame(
+    const uint8_t *frame,
+    uint32_t frame_length,
+    beacon_frame_t *result
+)
+{
+    // A complete Beacon needs at least 24 + 12 bytes.
+    if (frame == NULL || result == NULL || frame_length < 36)
+    {
+        return -1;
+    }
+
+    // Clear output so failed or missing fields aren't mistaken for valid data.
+    *result = (beacon_frame_t){0};
+
+    // Parse and validate the 24-byte Management Header.
+    if (parse_management_header(
+            frame,
+            frame_length,
+            &result->header) != 0)
+    {
+        return -1;
+    }
+
+    // Only Beacon subtype 8 is accepted.
+    if (result->header.control.subtype != 8)
+    {
+        return -1;
+    }
+
+    // Parse the 12-byte Beacon Fixed Parameters.
+    if (parse_beacon_fixed_parameters(
+            frame,
+            frame_length,
+            &result->fixed_parameters) != 0)
+    {
+        return -1;
+    }
+
+    // Information Elements begin after the 24-byte header
+    // and 12-byte fixed parameter section.
+    if (parse_beacon_information_elements(
+            &frame[36],
+            frame_length - 36,
+            &result->information_elements) != 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}

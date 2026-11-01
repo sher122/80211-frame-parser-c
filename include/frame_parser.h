@@ -59,6 +59,24 @@ typedef struct
 
 } beacon_info_t;
 
+// Stores the fixed parameters of an 802.11 Beacon frame.
+typedef struct
+{
+    uint64_t timestamp;
+    uint16_t beacon_interval;
+    uint16_t capability_information;
+
+} beacon_fixed_parameters_t;
+
+// Stores all information extracted from a Beacon frame.
+typedef struct
+{
+    management_header_t header;
+    beacon_fixed_parameters_t fixed_parameters;
+    beacon_info_t information_elements;
+
+} beacon_frame_t;
+
 // Decodes the two Frame Control bytes
 int parse_frame_control(
     const uint8_t *frame,
@@ -107,5 +125,19 @@ int parse_beacon_information_elements(
     const uint8_t *elements,
     uint32_t elements_length,
     beacon_info_t *result
+);
+
+// Parses the 12-byte fixed parameters of a Beacon frame.
+int parse_beacon_fixed_parameters(
+    const uint8_t *frame,
+    uint32_t frame_length,
+    beacon_fixed_parameters_t *result
+);
+
+// Parses a complete 802.11 Beacon frame.
+int parse_beacon_frame(
+    const uint8_t *frame,
+    uint32_t frame_length,
+    beacon_frame_t *result
 );
 #endif
