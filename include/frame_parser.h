@@ -26,6 +26,13 @@ typedef struct
 
 } management_header_t;
 
+// Stores the decoded SSID information
+typedef struct
+{
+    uint8_t length;
+    uint8_t value[32];
+} ssid_info_t;
+
 // Decodes the two Frame Control bytes
 int parse_frame_control(
     const uint8_t *frame,
@@ -39,4 +46,12 @@ int parse_management_header(
     uint32_t frame_length,
     management_header_t *result
 );
+
+// Parses an SSID Information Element
+int parse_ssid_element(
+    const uint8_t *element,
+    uint32_t element_length,
+    ssid_info_t *result
+);
+
 #endif

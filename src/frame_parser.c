@@ -77,3 +77,42 @@ int parse_management_header(
 
     return 0;
 }
+
+int parse_ssid_element(
+    const uint8_t *element,
+    uint32_t element_length,
+    ssid_info_t *result
+)
+{
+    // Reject NULL pointers and elements shorter than the ID and Length fields
+    if (element == NULL || result == NULL || element_length < 2)
+    {
+        return -1;
+    }
+
+    // Element ID 0 identifies an SSID
+    if (element[0] != 0)
+    {
+        return -1;
+    }
+
+    // Read the SSID value length
+    uint8_t ssid_length = element[1];
+
+    // Ensure the declared value is completely available
+    if (ssid_length > 32 || element_length < (uint32_t)(2 + ssid_length))
+    {
+        return -1;
+    }
+
+    // Store the SSID length
+    result->length = ssid_length;
+
+    // Copy the SSID bytes into our result structure
+    for (uint8_t i = 0; i < ssid_length; i++)
+    {
+        result->value[i] = element[2 + i];
+    }
+
+    return 0;
+}
