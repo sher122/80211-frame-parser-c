@@ -375,6 +375,7 @@ int parse_beacon_frame(
     // Only Beacon subtype 8 is accepted.
     if (result->header.control.subtype != 8)
     {
+
         return -1;
     }
 
@@ -394,6 +395,8 @@ int parse_beacon_frame(
             frame_length - 36,
             &result->information_elements) != 0)
     {
+         // Clear partial results if Information Element parsing fails.
+         *result = (beacon_frame_t){0};
         return -1;
     }
 
