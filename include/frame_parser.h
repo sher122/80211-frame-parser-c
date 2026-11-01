@@ -33,6 +33,13 @@ typedef struct
     uint8_t value[32];
 } ssid_info_t;
 
+// Stores the Supported Rates Information Element.
+typedef struct
+{
+    uint8_t count;       // Number of rate values found
+    uint8_t values[8];   // Storage for up to 8 rate values
+} supported_rates_t;
+
 // Decodes the two Frame Control bytes
 int parse_frame_control(
     const uint8_t *frame,
@@ -52,6 +59,20 @@ int parse_ssid_element(
     const uint8_t *element,
     uint32_t element_length,
     ssid_info_t *result
+);
+
+// Parses an 802.11 Supported Rates Information Element.
+int parse_supported_rates(
+    const uint8_t *element,
+    uint32_t element_length,
+    supported_rates_t *result
+);
+
+// Decodes an encoded rate into units of 500 kbps.
+// Returns 1 if the rate is marked as basic, otherwise 0.
+int decode_supported_rate(
+    uint8_t rate_byte,
+    uint8_t *rate_units
 );
 
 #endif

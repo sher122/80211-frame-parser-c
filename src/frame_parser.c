@@ -116,3 +116,65 @@ int parse_ssid_element(
 
     return 0;
 }
+
+// Parses an 802.11 Supported Rates Information Element.
+int parse_supported_rates(
+    const uint8_t *element,
+    uint32_t element_length,
+    supported_rates_t *result
+)
+{
+    // Reject NULL pointers and elements shorter than 2 bytes.
+    if (element == NULL || result == NULL || element_length < 2)
+    {
+        return -1;
+    }
+
+    // Element ID 1 identifies the Supported Rates element.
+    if (element[0] != 1)
+    {
+        return -1;
+    }
+
+    // Read the number of rate values.
+    uint8_t rate_count = element[1];
+
+    // Supported Rates can contain at most 8 values.
+    if (rate_count > 8)
+    {
+        return -1;
+    }
+
+    // Check that all declared rate bytes are available.
+    if (element_length < (uint32_t)(2 + rate_count))
+    {
+        return -1;
+    }
+
+    // Store the number of rates.
+    result->count = rate_count;
+
+    // Copy each encoded rate byte into the result.
+    for (uint8_t i = 0; i < rate_count; i++)
+    {
+        result->values[i] = element[2 + i];
+    }
+
+    return 0;
+}
+
+// Decodes a rate byte into 500 kbps units.
+int decode_supported_rate(uint8_t rate_byte, uint8_t *rate_units)
+{
+    // Reject a NULL output pointer.
+    if (rate_units == NULL)
+    {
+        return -1;
+    }
+
+    // Keep only the lower 7 bits; bit 7 is the Basic Rate flag.
+    *rate_units = rate_byte & 0x7F;
+
+    // Return 1 for Basic Rate, 0 otherwise.
+    return (rate_byte & 0x80) ? 1 : 0;
+}
