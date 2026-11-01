@@ -1,0 +1,18 @@
+# Compiled executables
+*.exe
+
+# Object files
+*.o
+*.obj
+
+# Temporary test samples
+samples/truncated.bin
+samples/invalid.bin
+samples/missing.bin
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE files
+.vscode/
