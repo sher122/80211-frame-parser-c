@@ -102,5 +102,80 @@ int main(void)
         printf("Non-Beacon frame rejected successfully.\n");
     }
 
-    return 0;
+        // Test rejection of an Information Element with an invalid length.
+    uint8_t invalid_ie[sizeof(beacon)];
+
+    for (uint32_t i = 0; i < sizeof(beacon); i++)
+    {
+        invalid_ie[i] = beacon[i];
+    }
+
+    // SSID length is stored at byte offset 37.
+    invalid_ie[37] = 0x20; // Claims 32 bytes, but only 4 are available.
+
+    if (parse_beacon_frame(invalid_ie, sizeof(invalid_ie), &result) == -1)
+    {
+        printf("Invalid IE length rejected successfully.\n");
+    }
+    else
+    {
+        printf("ERROR: Invalid IE length was accepted!\n");
+        return 1;
+    }
+
+        // Test rejection of a NULL frame pointer.
+    if (parse_beacon_frame(NULL, sizeof(beacon), &result) == -1)
+    {
+        printf("NULL frame pointer rejected successfully.\n");
+    }
+    else
+    {
+        printf("ERROR: NULL frame pointer was accepted!\n");
+        return 1;
+    }
+
+    // Test rejection of a NULL output pointer.
+    if (parse_beacon_frame(beacon, sizeof(beacon), NULL) == -1)
+    {
+        printf("NULL output pointer rejected successfully.\n");
+    }
+    else
+    {
+        printf("ERROR: NULL output pointer was accepted!\n");
+        return 1;
+    }
+
+        // Test that failed parsing does not leave partial output.
+    uint8_t partial_failure[sizeof(beacon)];
+
+    for (uint32_t i = 0; i < sizeof(beacon); i++)
+    {
+        partial_failure[i] = beacon[i];
+    }
+
+    
+
+    // Claim 32 SSID bytes when only 4 are available.
+    partial_failure[37] = 0x20;
+
+    // Test that failed parsing clears all partial output.
+    if (parse_beacon_frame(
+            partial_failure,
+            sizeof(partial_failure),
+            &result) == -1)
+    {
+        if (result.header.control.type != 0 ||
+            result.fixed_parameters.beacon_interval != 0)
+        {
+            printf("ERROR: Partial output was not cleared!\n");
+            return 1;
+        }
+
+        printf("Partial output cleared successfully.\n");
+    }
+    else
+    {
+        printf("ERROR: Invalid frame was accepted!\n");
+        return 1;
+    }
 }
