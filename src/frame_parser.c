@@ -209,3 +209,89 @@ int parse_ds_parameter_set(
 
     return 0;
 }
+// Parses all Information Elements in a Beacon frame.
+int parse_beacon_information_elements(
+    const uint8_t *elements,
+    uint32_t elements_length,
+    beacon_info_t *result
+)
+{
+    // Validate input pointers.
+    if (elements == NULL || result == NULL)
+    {
+        return -1;
+    }
+
+    // Clear the result so missing elements remain marked as absent.
+    *result = (beacon_info_t){0};
+
+    uint32_t offset = 0;
+
+    // Walk through the Information Elements one by one.
+    while (offset < elements_length)
+    {
+        // Every IE needs at least an ID byte and a length byte.
+        if (elements_length - offset < 2)
+        {
+            return -1;
+        }
+
+        uint8_t element_id = elements[offset];
+        uint8_t element_length = elements[offset + 1];
+
+        // Calculate the total size of this IE.
+        uint32_t total_length = 2U + element_length;
+
+        // Make sure the complete IE is available.
+        if (total_length > elements_length - offset)
+        {
+            return -1;
+        }
+
+        // Parse the IE based on its Element ID.
+        switch (element_id)
+        {
+            case 0:
+                if (parse_ssid_element(
+                        &elements[offset],
+                        total_length,
+                        &result->ssid) != 0)
+                {
+                    return -1;
+                }
+                result->has_ssid = 1;
+                break;
+
+            case 1:
+                if (parse_supported_rates(
+                        &elements[offset],
+                        total_length,
+                        &result->supported_rates) != 0)
+                {
+                    return -1;
+                }
+                result->has_supported_rates = 1;
+                break;
+
+            case 3:
+                if (parse_ds_parameter_set(
+                        &elements[offset],
+                        total_length,
+                        &result->ds_parameter_set) != 0)
+                {
+                    return -1;
+                }
+                result->has_ds_parameter_set = 1;
+                break;
+
+            default:
+                // Skip Information Elements we do not support.
+                break;
+        }
+
+        // Move to the next IE.
+        offset += total_length;
+    }
+
+    return 0;
+}

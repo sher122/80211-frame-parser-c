@@ -46,6 +46,19 @@ typedef struct
     uint8_t channel;
 } ds_parameter_set_t;
 
+// Stores information extracted from a Beacon frame.
+typedef struct
+{
+    ssid_info_t ssid;
+    supported_rates_t supported_rates;
+    ds_parameter_set_t ds_parameter_set;
+
+    uint8_t has_ssid;
+    uint8_t has_supported_rates;
+    uint8_t has_ds_parameter_set;
+
+} beacon_info_t;
+
 // Decodes the two Frame Control bytes
 int parse_frame_control(
     const uint8_t *frame,
@@ -88,4 +101,11 @@ int parse_ds_parameter_set(
     ds_parameter_set_t *result
 );
 
+
+// Parses the Information Elements of a Beacon frame.
+int parse_beacon_information_elements(
+    const uint8_t *elements,
+    uint32_t elements_length,
+    beacon_info_t *result
+);
 #endif
