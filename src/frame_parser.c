@@ -178,3 +178,34 @@ int decode_supported_rate(uint8_t rate_byte, uint8_t *rate_units)
     // Return 1 for Basic Rate, 0 otherwise.
     return (rate_byte & 0x80) ? 1 : 0;
 }
+
+// Parses the DS Parameter Set Information Element.
+int parse_ds_parameter_set(
+    const uint8_t *element,
+    uint32_t element_length,
+    ds_parameter_set_t *result
+)
+{
+    // Validate pointers and minimum IE size.
+    if (element == NULL || result == NULL || element_length < 2)
+    {
+        return -1;
+    }
+
+    // Element ID 3 identifies the DS Parameter Set.
+    if (element[0] != 3)
+    {
+        return -1;
+    }
+
+    // This element must contain exactly one channel byte.
+    if (element[1] != 1 || element_length < 3)
+    {
+        return -1;
+    }
+
+    // Store the channel number.
+    result->channel = element[2];
+
+    return 0;
+}

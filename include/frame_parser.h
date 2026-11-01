@@ -40,6 +40,12 @@ typedef struct
     uint8_t values[8];   // Storage for up to 8 rate values
 } supported_rates_t;
 
+// Stores the DS Parameter Set channel information.
+typedef struct
+{
+    uint8_t channel;
+} ds_parameter_set_t;
+
 // Decodes the two Frame Control bytes
 int parse_frame_control(
     const uint8_t *frame,
@@ -73,6 +79,13 @@ int parse_supported_rates(
 int decode_supported_rate(
     uint8_t rate_byte,
     uint8_t *rate_units
+);
+
+// Parses an 802.11 DS Parameter Set Information Element.
+int parse_ds_parameter_set(
+    const uint8_t *element,
+    uint32_t element_length,
+    ds_parameter_set_t *result
 );
 
 #endif
